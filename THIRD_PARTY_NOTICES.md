@@ -24,4 +24,4 @@ Copyright (C) 1997–2026 Sam Lantinga and contributors. The complete notice is 
 
 ## Artwork
 
-The controller illustration and screen design references were generated using GPT Image for EvoBridge. Prompts are documented in `design/prompts.md`. Reference images illustrate the intended design and are not captured screenshots. Windows fonts are used from the operating system and are not redistributed.
+The production controller illustration in `assets/controller.png` was generated using GPT Image for EvoBridge. Documentation screenshots in `docs/screenshots` are captures of the running application, not generated mockups. Windows fonts are used from the operating system and are not redistributed.

@@ -4,9 +4,9 @@
 
 EvoBridge is a Windows desktop mapper for Xbox/XInput controllers and SDL-supported gamepads. It reads a selected physical controller, sends its input to an unmodified local [VIIPER](https://github.com/Alia5/VIIPER) backend, and exposes a virtual USB DualShock 4. Optional HidHide integration prevents applications from receiving both physical and virtual input.
 
-![Controller workspace design reference](https://raw.githubusercontent.com/gurugsv7/EvoBridge/main/design/controller-workspace.png)
+![EvoBridge running on Windows](docs/screenshots/controller.png)
 
-*Design reference generated with GPT Image; the app implements native interactive controls. Dynamic values, fonts and window chrome differ from the mockup. See [design notes](https://github.com/gurugsv7/EvoBridge/blob/main/design/prompts.md).*
+*Actual screenshot of EvoBridge maximized on Windows, with a connected controller in live input preview.*
 
 ## Download and start
 
