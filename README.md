@@ -44,6 +44,12 @@ The virtual DS4 was recognized by Steam and SDL, and physical vibration was conf
 
 The software suite contains **34 checks** covering report encoding, local protocol behavior, profile persistence, exact-device safety and simulated generic mapping. Hardware validation is separate; CI cannot prove physical rumble or Remote Play compatibility.
 
+## PS Remote Play: older Windows version
+
+For troubleshooting crashes in newer PS Remote Play releases, **8.5.0.08070** is the older version used during local setup. Find it on [Uptodown's PS Remote Play version history](https://ps5-remote-play.en.uptodown.com/windows/versions) and select **8.5.0.08070**. This is a third-party download page, not Sony's website.
+
+The installer alone does not reproduce the complete local workaround: that setup also used a separate executable version-metadata adjustment to address the update check. EvoBridge does not apply that adjustment or bundle Sony's installer or executable. Downloading 8.5 does not establish compatibility between EvoBridge and Remote Play; a live PS5 session with EvoBridge remains unverified.
+
 ## Build from source
 
 In Windows PowerShell, from the repository folder:
