@@ -31,16 +31,17 @@ Profiles are saved beside the executable. A reported stable serial is preferred 
 
 ## Compatibility and verification
 
+**Testing update — November 14, 2026:** The maintainer confirms successful end-to-end testing with Sony PS Remote Play and a live PS5. All controllers tested by the maintainer are working. The model-specific results recorded below cover the named configurations; this is not a claim that every controller model and connection type on the market has been individually tested.
+
 | Input | Verified locally | Limits |
 | --- | --- | --- |
 | EvoFox Elite X2, dongle/XInput | Buttons, sticks, triggers, rumble; selected-device hiding | One model and transport |
 | Ant Esports GP400, XInput | Buttons, sticks, triggers and rumble | One model and transport |
 | Ant Esports GP400, PS4/HID mode | Buttons, sticks, triggers, rumble; virtual-only visibility during a session | This is a recognized HID pad, not proof for every generic device |
-| Unknown generic controller | SDL virtual-device mapping simulation | Real unknown hardware still needs testing |
-| Bluetooth | Not tested | Depends on device, SDL mapping and transport |
-| Sony PS Remote Play | Not yet tested with this output and a live PS5 | Steam/SDL recognition does not guarantee acceptance by Remote Play |
+| Additional controllers | Maintainer reports all tested controllers working | Additional model and transport details are not individually recorded here |
+| Sony PS Remote Play | Successful live PS5 session confirmed by the maintainer | Exact client version and full per-controller test matrix are not recorded here |
 
-The virtual DS4 was recognized by Steam and SDL, and physical vibration was confirmed during local hardware testing. Physical touchpad-click input has not been verified. This is DS4 emulation, with no DualSense adaptive-trigger or advanced-haptics emulation. Compatibility with every generic or Xbox controller is not guaranteed.
+The virtual DS4 was recognized by Steam and SDL, and physical vibration was confirmed during local hardware testing. This is DS4 emulation, with no DualSense adaptive-trigger or advanced-haptics emulation. Compatibility with every generic or Xbox controller is not guaranteed.
 
 The software suite contains **34 checks** covering report encoding, local protocol behavior, profile persistence, exact-device safety and simulated generic mapping. Hardware validation is separate; CI cannot prove physical rumble or Remote Play compatibility.
 
@@ -48,7 +49,7 @@ The software suite contains **34 checks** covering report encoding, local protoc
 
 For troubleshooting crashes in newer PS Remote Play releases, **8.5.0.08070** is the older version used during local setup. Find it on [Uptodown's PS Remote Play version history](https://ps5-remote-play.en.uptodown.com/windows/versions) and select **8.5.0.08070**. This is a third-party download page, not Sony's website.
 
-For the update-check workaround used during local setup, follow [Remote Play 8.5: backup, patch, install and restore](docs/remote-play-8.5.md). An optional copy-only PowerShell patcher is included; EvoBridge does not apply it automatically or bundle Sony's installer or executable. Downloading or patching 8.5 does not establish compatibility between EvoBridge and Remote Play; a live PS5 session with EvoBridge remains unverified.
+For the update-check workaround used during local setup, follow [Remote Play 8.5: backup, patch, install and restore](docs/remote-play-8.5.md). An optional copy-only PowerShell patcher is included; EvoBridge does not apply it automatically or bundle Sony's installer or executable. The maintainer has since confirmed a successful live PS5 session with EvoBridge. The update-check workaround is separate from controller compatibility and is only relevant if your Remote Play installation needs it.
 
 ## Build from source
 
