@@ -1,0 +1,31 @@
+name: Windows build and checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - name: Build, verify dependencies, run 34 checks and package
+        shell: powershell
+        run: ./scripts/Package.ps1
+      - name: Upload portable package and checksums
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: EvoBridge-windows-x64
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+      - name: Upload software test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: software-checks
+          path: artifacts/tests/*test.json
+          if-no-files-found: warn

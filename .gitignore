@@ -1,0 +1,16 @@
+# Local controller identities, settings, diagnostics and build products
+profiles.json*
+input-hiding-state.json*
+*.log
+*.diagnostic.txt
+/artifacts/
+/.deps/
+/dist/
+/EvoBridge.exe
+/SDL3.dll
+/backend/
+bin/
+obj/
+.vs/
+*.user
+*.suo
