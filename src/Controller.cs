@@ -10,26 +10,6 @@ namespace EvoBridge {
     }
     [StructLayout(LayoutKind.Sequential)]
     public struct InputState { public uint Packet; public Gamepad Pad; }
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Vibration { public ushort Left, Right; }
-    public static class XInput {
-        [DllImport("xinput1_4.dll", EntryPoint="XInputGetState")]
-        static extern uint GetState(uint index, out InputState state);
-        [DllImport("xinput1_4.dll", EntryPoint="XInputSetState")]
-        static extern uint SetState(uint index, ref Vibration state);
-        public static bool Read(int index, out InputState state) {
-            return GetState((uint)index, out state) == 0;
-        }
-        public static void Rumble(int index, byte large, byte small) {
-            Vibration v = new Vibration { Left=(ushort)(large*257), Right=(ushort)(small*257) };
-            SetState((uint)index, ref v);
-        }
-        public static int FirstConnected() {
-            InputState s;
-            for (int i=0;i<4;i++) if (Read(i,out s)) return i;
-            return -1;
-        }
-    }
     public static class Mapper {
         public const ushort Up=1, Down=2, Left=4, Right=8, Start=16, Back=32,
             L3=64, R3=128, L1=256, R1=512, A=4096, B=8192, X=16384, Y=32768;

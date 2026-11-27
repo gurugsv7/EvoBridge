@@ -57,7 +57,8 @@ namespace EvoBridge {
         public string Diagnostic="";
         public volatile string RumbleError;
         public volatile bool RumbleAccepted;
-        readonly Queue<Action> commands=new Queue<Action>();
+        sealed class Command{public Action Run;public Action<Exception> Fail;}
+        readonly Queue<Command> commands=new Queue<Command>();bool stopped; // guarded by commands
         readonly AutoResetEvent wake=new AutoResetEvent(false);
         readonly Thread runtime;
         volatile bool shuttingDown;
@@ -69,9 +70,14 @@ namespace EvoBridge {
                     try{Configure();Initialize();}catch(Exception ex){failure=ex;}finally{ready.Set();}
                     if(failure!=null)return;
                     try{while(!shuttingDown){
-                        Action action=null;lock(commands){if(commands.Count>0)action=commands.Dequeue();}
-                        if(action!=null)action();else{PumpCore();wake.WaitOne(8);}
-                    }}finally{Sdl.SDL_Quit();}
+                        Command command=null;lock(commands){if(commands.Count>0)command=commands.Dequeue();}
+                        if(command!=null)command.Run();else{PumpCore();wake.WaitOne(8);}
+                    }}finally{
+                        // Fail anything queued during shutdown so no caller waits forever for this thread.
+                        Command[] pending;lock(commands){stopped=true;pending=commands.ToArray();commands.Clear();}
+                        foreach(var command in pending)command.Fail(new ObjectDisposedException("SDL input"));
+                        Sdl.SDL_Quit();
+                    }
                 }){IsBackground=true,Name="EvoBridge SDL input"};
                 runtime.SetApartmentState(ApartmentState.MTA);runtime.Start();ready.WaitOne();
             }
@@ -84,11 +90,16 @@ namespace EvoBridge {
             Sdl.SDL_SetHint("SDL_JOYSTICK_RAWINPUT","0");
             Sdl.SDL_SetHint("SDL_JOYSTICK_RAWINPUT_CORRELATE_XINPUT","1");
         }
-        void Initialize(){if(!Sdl.SDL_Init(0x2000))throw new IOException(Sdl.Text(Sdl.SDL_GetError()));foreach(var p in Profiles.Load().Controllers)if(!String.IsNullOrEmpty(p.Mapping))Sdl.SDL_AddGamepadMapping(p.Mapping);}
+        void Initialize(){if(!Sdl.SDL_Init(0x2000))throw new IOException(Sdl.Text(Sdl.SDL_GetError()));
+            // An unreadable profiles.json must not block startup; the UI reports the load error itself.
+            List<ControllerProfile> saved;try{saved=Profiles.Load().Controllers;}catch(IOException){return;}catch(ArgumentException){return;}catch(InvalidOperationException){return;}
+            foreach(var p in saved)if(!String.IsNullOrEmpty(p.Mapping))Sdl.SDL_AddGamepadMapping(p.Mapping);}
         T Invoke<T>(Func<T> callback){
             if(Thread.CurrentThread==runtime)return callback();
             if(shuttingDown)throw new ObjectDisposedException("SDL input");
-            var completion=new TaskCompletionSource<T>();lock(commands){commands.Enqueue(()=>{try{completion.SetResult(callback());}catch(Exception ex){completion.SetException(ex);}});}wake.Set();return completion.Task.GetAwaiter().GetResult();
+            var completion=new TaskCompletionSource<T>();
+            lock(commands){if(stopped)throw new ObjectDisposedException("SDL input");commands.Enqueue(new Command{Run=()=>{try{completion.SetResult(callback());}catch(Exception ex){completion.SetException(ex);}},Fail=ex=>completion.TrySetException(ex)});}
+            wake.Set();return completion.Task.GetAwaiter().GetResult();
         }
         void PumpCore(){Sdl.SDL_PumpEvents();Sdl.SDL_UpdateGamepads();}
         public void Pump(){Invoke(()=>{PumpCore();return true;});}

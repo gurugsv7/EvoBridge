@@ -5,20 +5,16 @@ namespace EvoBridge {
     public sealed class Bridge : IDisposable {
         readonly ManualResetEvent stop=new ManualResetEvent(false);
         Thread worker;
-        readonly object gate=new object();
-        InputState latest;
         public volatile string Status="Preview mode";
         public volatile string Error;
         public volatile bool Running;
         public volatile bool RumbleEnabled=true;
         public bool HidePhysical=true;
-        public int Slot=-1;
         public int DeadzonePercent=8;
         SdlInput source;
         ControllerDevice device;
         long psUntil,touchUntil;
         volatile byte desiredLow,desiredHigh;
-        public InputState Latest { get {lock(gate)return latest;} }
         public void PressPS(){Interlocked.Exchange(ref psUntil,DateTime.UtcNow.AddMilliseconds(180).Ticks);}
         public void PressTouch(){Interlocked.Exchange(ref touchUntil,DateTime.UtcNow.AddMilliseconds(180).Ticks);}
         public void Start(SdlInput input,ControllerDevice selected,int deadzone) {
@@ -48,9 +44,8 @@ namespace EvoBridge {
                             state=new InputState();
                             if(disconnected==DateTime.MinValue)disconnected=DateTime.UtcNow;
                             Status="Controller disconnected; sending neutral input";
-                            if((DateTime.UtcNow-disconnected).TotalSeconds>=3)break;
+                            if((DateTime.UtcNow-disconnected).TotalSeconds>=3){Error="Controller disconnected for 3 seconds; session stopped. Reconnect it and start again.";break;}
                         }
-                        lock(gate)latest=state;
                         bool ps=DateTime.UtcNow.Ticks<Interlocked.Read(ref psUntil);
                         bool touch=DateTime.UtcNow.Ticks<Interlocked.Read(ref touchUntil);
                         output.Send(Mapper.Report(state.Pad,DeadzonePercent/100.0,ps,touch));
