@@ -28,9 +28,10 @@ namespace EvoBridge {
         public StudioCanvas(){DoubleBuffered=true;BackColor=StudioTheme.Background;Dock=DockStyle.Fill;SetStyle(ControlStyles.ResizeRedraw,true);}
         public void Place(Control c,RectangleF bounds){if(!placement.ContainsKey(c))Controls.Add(c);placement[c]=bounds;LayoutItems();}
         protected override void OnResize(EventArgs e){base.OnResize(e);LayoutItems();}
-        void LayoutItems(){UiScale=Math.Max(.2f,Math.Min(ClientSize.Width/1200f,ClientSize.Height/720f));UiOffset=new PointF((ClientSize.Width-1200*UiScale)/2,(ClientSize.Height-720*UiScale)/2);foreach(var pair in placement){var r=pair.Value;pair.Key.SetBounds((int)(UiOffset.X+r.X*UiScale),(int)(UiOffset.Y+r.Y*UiScale),Math.Max(1,(int)(r.Width*UiScale)),Math.Max(1,(int)(r.Height*UiScale)));var item=pair.Key as IStudioControl;if(item!=null)item.ScaleFactor=UiScale;else pair.Key.Font=new Font("Consolas",Math.Max(10,14*UiScale),FontStyle.Regular,GraphicsUnit.Pixel);pair.Key.Invalidate();}Invalidate();}
+        void LayoutItems(){UiScale=Math.Max(.2f,Math.Min(ClientSize.Width/1200f,ClientSize.Height/720f));UiOffset=new PointF((ClientSize.Width-1200*UiScale)/2,(ClientSize.Height-720*UiScale)/2);foreach(var pair in placement){var r=pair.Value;pair.Key.SetBounds((int)(UiOffset.X+r.X*UiScale),(int)(UiOffset.Y+r.Y*UiScale),Math.Max(1,(int)(r.Width*UiScale)),Math.Max(1,(int)(r.Height*UiScale)));var item=pair.Key as IStudioControl;if(item!=null)item.ScaleFactor=UiScale;else pair.Key.Font=StudioTheme.Font(Math.Max(10,(float)Math.Round(14*UiScale*2)/2),false,true);/* cached: a new Font per resize leaked GDI handles */pair.Key.Invalidate();}Invalidate();}
         protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);StudioTheme.Setup(e.Graphics);e.Graphics.TranslateTransform(UiOffset.X,UiOffset.Y);e.Graphics.ScaleTransform(UiScale,UiScale);if(Render!=null)Render(e.Graphics);}
         public PointF Logical(Point point){return new PointF((point.X-UiOffset.X)/UiScale,(point.Y-UiOffset.Y)/UiScale);}
+        static readonly string Version="v"+typeof(StudioCanvas).Assembly.GetName().Version.ToString(3);
         public static void Shell(Graphics g,string section,string title,string status,bool connected){
             using(var b=new LinearGradientBrush(new Rectangle(0,0,1200,720),Color.FromArgb(17,23,25),Color.FromArgb(10,14,16),90))g.FillRectangle(b,0,0,1200,720);
             using(var p=new SolidBrush(Color.FromArgb(12,16,18)))g.FillRectangle(p,0,0,171,720);
@@ -40,7 +41,7 @@ namespace EvoBridge {
             StudioTheme.Rule(g,194,85,1184,85);
             if(!String.IsNullOrEmpty(status)){using(var b=new SolidBrush(connected?StudioTheme.Lime:StudioTheme.Muted))g.FillEllipse(b,1030,25,10,10);StudioTheme.TextAt(g,status,1052,22,13,StudioTheme.Text,false,true,132,38);}
             StudioTheme.TextAt(g,"LOCAL. OPEN. YOURS.",20,651,10,StudioTheme.Text,false,true);
-            StudioTheme.TextAt(g,"v0.4",20,674,10,StudioTheme.Muted,false,true);
+            StudioTheme.TextAt(g,Version,20,674,10,StudioTheme.Muted,false,true);
         }
     }
     public interface IStudioControl {float ScaleFactor{get;set;}}

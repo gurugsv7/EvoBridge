@@ -14,7 +14,7 @@ namespace EvoBridge {
         readonly TextBox profileName=new TextBox();readonly List<ProfileRow> rows=new List<ProfileRow>();
         List<ControllerDevice> devices=new List<ControllerDevice>();List<ControllerProfile> saved=new List<ControllerProfile>();
         ControllerProfile current,editing;Gamepad pad;bool connected,closing,stopping,mapping;int page,profileOffset;
-        DateTime nextScan=DateTime.MinValue,noteUntil;string note;
+        DateTime nextScan=DateTime.MinValue,noteUntil;string note;ContextMenuStrip deviceMenu;
         public MainForm(){
             Text="EvoBridge · Controller desk";
             controllerNav=Button("CONTROLLER",new RectangleF(0,112,171,46),()=>SetPage(0),false,true);
@@ -42,6 +42,7 @@ namespace EvoBridge {
             Canvas.MouseWheel+=(s,e)=>{if(page==1)ScrollProfiles(e.Delta>0?-1:1);};
             Canvas.Render=PaintScreen;timer.Interval=33;timer.Tick+=(s,e)=>TickState();timer.Start();
             FormClosing+=(s,e)=>{if(closing)return;closing=true;timer.Stop();bridge.Dispose();input.Dispose();art.Dispose();};
+            FormClosed+=(s,e)=>{if(deviceMenu!=null)deviceMenu.Dispose();};
             ReloadSaved();Scan();SetPage(0);TickState();
         }
         void Notice(string message,string title){MessageBox.Show(this,message,title,MessageBoxButtons.OK,MessageBoxIcon.Information);}
@@ -62,13 +63,14 @@ namespace EvoBridge {
             }catch(Exception ex){SetNote(ex.Message);}finally{nextScan=DateTime.UtcNow.AddSeconds(2);}
         }
         void SelectDevice(ControllerDevice d){try{input.Select(d);current=d==null?null:Profiles.For(d);if(current!=null){deadzone.Value=current.Deadzone;rumble.Checked=current.Rumble;hide.Checked=current.HidePhysical;editing=current;}Canvas.Invalidate();}catch(Exception ex){Notice(ex.Message,"Controller selection");}}
-        void ChooseDevice(){if(bridge.Busy)return;Scan();var menu=new ContextMenuStrip{BackColor=StudioTheme.Panel,ForeColor=StudioTheme.Text,ShowImageMargin=false};foreach(var d in devices){var selected=d;var item=new ToolStripMenuItem(d.ToString()){Checked=input.Selected!=null&&input.Selected.Id==d.Id};item.Click+=(s,e)=>SelectDevice(selected);menu.Items.Add(item);}menu.Items.Add(new ToolStripSeparator());menu.Items.Add("Refresh controllers",null,(s,e)=>{nextScan=DateTime.MinValue;Scan();});menu.Closed+=(s,e)=>menu.Dispose();menu.Show(change,new Point(0,change.Height));}
+        // One menu is reused: disposing it from its own Closed event crashes when WinForms finishes the click on a disposed strip.
+        void ChooseDevice(){if(bridge.Busy)return;Scan();if(deviceMenu==null)deviceMenu=new ContextMenuStrip{BackColor=StudioTheme.Panel,ForeColor=StudioTheme.Text,ShowImageMargin=false};var old=deviceMenu.Items.Cast<ToolStripItem>().ToArray();deviceMenu.Items.Clear();foreach(var item in old)item.Dispose();foreach(var d in devices){var selected=d;var item=new ToolStripMenuItem(d.ToString()){Checked=input.Selected!=null&&input.Selected.Id==d.Id};item.Click+=(s,e)=>SelectDevice(selected);deviceMenu.Items.Add(item);}deviceMenu.Items.Add(new ToolStripSeparator());deviceMenu.Items.Add("Refresh controllers",null,(s,e)=>{nextScan=DateTime.MinValue;Scan();});deviceMenu.Show(change,new Point(0,change.Height));}
         bool SaveCurrent(){if(current==null)return false;try{current.Deadzone=deadzone.Value;current.Rumble=rumble.Checked;current.HidePhysical=hide.Checked;Profiles.Save(current);SetNote("Profile saved on this PC.");return true;}catch(Exception ex){Notice(ex.Message,"Cannot save profile");return false;}}
         void StartOutput(){try{if(!SaveCurrent())return;bridge.HidePhysical=hide.Checked;bridge.RumbleEnabled=rumble.Checked;bridge.Start(input,input.Selected,deadzone.Value);}catch(Exception ex){Notice(ex.Message,"Cannot start session");}}
         async void StopOutput(){if(stopping)return;stopping=true;await Task.Run((Action)bridge.Stop);stopping=false;Canvas.Invalidate();}
         void MapDevice(){MapDevice(false);}
         void MapDevice(bool review){var d=input.Selected;if(d==null||bridge.Busy)return;if(review&&!d.Mapped){Notice("Create a mapping for this controller first.","Mapping needed");return;}mapping=true;timer.Stop();mappingNav.Selected=true;try{input.Select(null);using(var wizard=new MappingWizard(d,input,review))if(wizard.ShowDialog(this)==DialogResult.OK){current.Mapping=wizard.Mapping;Profiles.Save(current);if(Sdl.SDL_AddGamepadMapping(wizard.Mapping)<0)throw new InvalidOperationException(Sdl.Text(Sdl.SDL_GetError()));d.Mapped=Sdl.SDL_IsGamepad(d.Id);SetNote("Mapping saved. Test controls in live preview.");}input.Select(d);}catch(Exception ex){Notice(ex.Message,"Mapping setup");try{input.Select(d);}catch{}}finally{mapping=false;mappingNav.Selected=false;timer.Start();}}
-        void ReloadSaved(){saved=Profiles.Load().Controllers;profileOffset=Math.Max(0,Math.Min(profileOffset,Math.Max(0,saved.Count-3)));if(editing==null||!saved.Any(p=>p.Key==editing.Key))editing=saved.FirstOrDefault(p=>current!=null&&p.Key==current.Key)??saved.FirstOrDefault();else editing=saved.First(p=>p.Key==editing.Key);BindRows();EditProfile(editing);}
+        void ReloadSaved(){try{saved=Profiles.Load().Controllers;}catch(Exception ex){saved=new List<ControllerProfile>();SetNote(ex.Message);}profileOffset=Math.Max(0,Math.Min(profileOffset,Math.Max(0,saved.Count-3)));if(editing==null||!saved.Any(p=>p.Key==editing.Key))editing=saved.FirstOrDefault(p=>current!=null&&p.Key==current.Key)??saved.FirstOrDefault();else editing=saved.First(p=>p.Key==editing.Key);BindRows();EditProfile(editing);}
         void BindRows(){for(int i=0;i<rows.Count;i++){int index=profileOffset+i;rows[i].Profile=index<saved.Count?saved[index]:null;rows[i].Selected=rows[i].Profile!=null&&editing!=null&&rows[i].Profile.Key==editing.Key;rows[i].Visible=page==1&&rows[i].Profile!=null;rows[i].Invalidate();}}
         void EditProfile(ControllerProfile p){editing=p;profileName.Text=p==null?"":p.Name;editDeadzone.Value=p==null?8:p.Deadzone;editRumble.Checked=p!=null&&p.Rumble;editHide.Checked=p!=null&&p.HidePhysical;editSave.Enabled=p!=null;foreach(var row in rows){row.Selected=row.Profile!=null&&p!=null&&row.Profile.Key==p.Key;row.Invalidate();}Canvas.Invalidate();}
         void ScrollProfiles(int delta){profileOffset=Math.Max(0,Math.Min(Math.Max(0,saved.Count-3),profileOffset+delta));BindRows();}
